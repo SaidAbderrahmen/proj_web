@@ -1,9 +1,10 @@
+<?php
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Page avec boutons encadrés</title>
+    <title>Gestion de Cocktails</title>
     <style>
         header {
             display: flex;
@@ -94,11 +95,7 @@
     <div class="nav-container">
         <nav class="navbar">
             <a href="index.php" class="nav-btn">Navigation</a>
-        </nav>
-    </div>
-    <div class="nav-container">
-        <nav class="navbar">
-            <a href="recettes_favorites.php" class="nav-btn">Recettes❤️</a>
+            <a href="recettes_favorites.php" class="nav-btn">Recettes ❤️</a>
         </nav>
     </div>
 
@@ -109,20 +106,21 @@
         <button type="submit" class="search-bar-btn">🔍</button>
     </form>
 
-    <!-- Formulaire de connexion aligné horizontalement -->
+    <!-- Zone de connexion -->
     <div class="login">
-        <form action="connexion.php" method="POST" class="connexion-form">
-            <label for="login">Login:</label>
-            <input type="text" id="login" name="login" required>
-            <label for="password">Mot de passe:</label>
-            <input type="password" id="password" name="password" required>
-            <button type="submit" class="auth-btn">Connexion</button>
-        </form>
-
-        <!-- Lien "S'inscrire" transformé en bouton -->
-        <a href="inscription.php" class="auth-btn">S'inscrire</a>
+        <?php if (isset($_SESSION['user'])): ?>
+            <span>Bienvenue, <?= htmlspecialchars($_SESSION['user']['login']) ?></span>
+            <a href="profile.php" class="auth-btn">Profil</a>
+            <a href="deconnexion.php" class="auth-btn">Se déconnecter</a>
+        <?php else: ?>
+            <form action="connexion.php" method="POST" class="connexion-form">
+                <label for="login">Login:</label>
+                <input type="text" id="login" name="login" required>
+                <label for="password">Mot de passe:</label>
+                <input type="password" id="password" name="password" required>
+                <button type="submit" class="auth-btn">Connexion</button>
+            </form>
+            <a href="inscription.php" class="auth-btn">S'inscrire</a>
+        <?php endif; ?>
     </div>
 </header>
-
-</body>
-</html>

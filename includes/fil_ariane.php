@@ -1,17 +1,16 @@
 <?php
+
 include 'Donnees.inc.php';
 
-//genere le fil d'ariane pour un aliment specifique
-//le chemin des categories depuis la racine jusqua laliment selectionne
+// Générer le fil d'Ariane pour un aliment spécifique
 function generateFilAriane($aliment){
     global $Hierarchie;
     $fil_ariane = [];
-    while(isset($Hierarchie[$aliment]['super-categorie'])){//verifie si laliment actuel a une super-cat
-        //ajouter chaque categorie au debut du tableau, chemin depuis la racine jusqu'à l'aliment courant
+    while($aliment !== 'Aliment' && isset($Hierarchie[$aliment]['super-categorie'][0])) {
         array_unshift($fil_ariane, $aliment);
-        $aliment = $Hierarchie[$aliment]['super-categorie'][0]; //premiere super cat, car un aliment peut avoir plusieurs sup-cat
+        $aliment = $Hierarchie[$aliment]['super-categorie'][0];
     }
-    array_unshift($fil_ariane, 'Aliment'); //ajoute la racine de la hierarchie
+    array_unshift($fil_ariane, 'Aliment');
     return $fil_ariane;
 }
 ?>

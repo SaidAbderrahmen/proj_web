@@ -1,5 +1,7 @@
 <?php
-include 'Donnees.inc.php';
+session_start();
+
+include '../Donnees.inc.php';
 ?>
 
 <!DOCTYPE html>
@@ -91,7 +93,7 @@ include 'Donnees.inc.php';
                             var_dump($recettes); // Debugging
                             ?>
 
-                            <a href="details_recette.php?id=<?= urlencode($recette['titre']) ?>">Voir les détails</a>
+                            <a href="../details_recette.php?id=<?= urlencode($recette['titre']) ?>">Voir les détails</a>
                         </div>
                     <?php endforeach; ?>
                 </div>

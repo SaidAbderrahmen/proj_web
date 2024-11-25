@@ -1,58 +1,59 @@
 <?php
+
 session_start();
 
-// Rediriger l'utilisateur non connecté vers la page d'accueil
 if (!isset($_SESSION['user'])) {
     header('Location: index.php');
-    exit;
+    exit();
 }
 
-// Simuler la base de données (fichier JSON)
 $usersFile = 'users.json';
+$users = json_decode(file_get_contents($usersFile), true);
 
-// Charger les utilisateurs
-$users = file_exists($usersFile) ? json_decode(file_get_contents($usersFile), true) : [];
+$login = $_SESSION['user']['login'];
+$user = $users[$login];
 
-// Obtenir l'utilisateur connecté
-$currentUser = $_SESSION['user'];
-$login = $currentUser['login'];
-
-// Initialiser les données de l'utilisateur
-$nom = $currentUser['nom'] ?? '';
-$prenom = $currentUser['prenom'] ?? '';
-$sexe = $currentUser['sexe'] ?? '';
-$date_naissance = $currentUser['date_naissance'] ?? '';
-
-// Mise à jour des données personnelles
-$error = '';
-$success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nom = $_POST['nom'];
-    $prenom = $_POST['prenom'];
-    $sexe = $_POST['sexe'];
-    $date_naissance = $_POST['date_naissance'];
+    // Validation des données
+    $errors = [];
 
-    // Valider les champs
-    if (!empty($nom) && preg_match("/^[a-zA-ZÀ-ÖØ-öø-ÿ'-\s]+$/", $nom) === 0) {
-        $error = 'Le nom contient des caractères invalides.';
-    } elseif (!empty($prenom) && preg_match("/^[a-zA-ZÀ-ÖØ-öø-ÿ'-\s]+$/", $prenom) === 0) {
-        $error = 'Le prénom contient des caractères invalides.';
-    } elseif (!empty($date_naissance) && strtotime($date_naissance) >= strtotime('-18 years')) {
-        $error = 'Vous devez avoir au moins 18 ans.';
+    // Nom
+    if (!empty($_POST['nom']) && !preg_match("/^[a-zA-ZÀ-ÿ' -]+$/u", $_POST['nom'])) {
+        $errors['nom'] = "Le nom est invalide.";
     } else {
-        // Mettre à jour l'utilisateur
-        $users[$login]['nom'] = $nom;
-        $users[$login]['prenom'] = $prenom;
-        $users[$login]['sexe'] = $sexe;
-        $users[$login]['date_naissance'] = $date_naissance;
+        $user['nom'] = $_POST['nom'];
+    }
 
-        // Sauvegarder les données
+    // Prénom
+    if (!empty($_POST['prenom']) && !preg_match("/^[a-zA-ZÀ-ÿ' -]+$/u", $_POST['prenom'])) {
+        $errors['prenom'] = "Le prénom est invalide.";
+    } else {
+        $user['prenom'] = $_POST['prenom'];
+    }
+
+    // Sexe
+    $user['sexe'] = $_POST['sexe'] ?? '';
+
+    // Date de naissance
+    if (!empty($_POST['naissance'])) {
+        $date_naissance_dt = new DateTime($_POST['naissance']);
+        $today = new DateTime();
+        $age = $today->diff($date_naissance_dt)->y;
+        if ($age < 18) {
+            $errors['naissance'] = "Vous devez avoir au moins 18 ans.";
+        } else {
+            $user['naissance'] = $_POST['naissance'];
+        }
+    } else {
+        $user['naissance'] = '';
+    }
+
+    // Si pas d'erreurs, mise à jour
+    if (empty($errors)) {
+        $users[$login] = $user;
         file_put_contents($usersFile, json_encode($users));
-
-        // Mettre à jour la session
-        $_SESSION['user'] = $users[$login];
-
-        $success = 'Vos informations ont été mises à jour avec succès.';
+        $_SESSION['user'] = $user;
+        $success = "Profil mis à jour avec succès.";
     }
 }
 ?>
@@ -61,8 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profil utilisateur</title>
+    <title>Mon Profil</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -105,28 +105,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <div class="form-profil">
     <h2>Mon Profil</h2>
-    <?php if ($error): ?>
-        <p class="error"><?= htmlspecialchars($error) ?></p>
-    <?php endif; ?>
-    <?php if ($success): ?>
+    <?php if (isset($success)): ?>
         <p class="success"><?= htmlspecialchars($success) ?></p>
+    <?php endif; ?>
+    <?php if (isset($errors) && !empty($errors)): ?>
+        <div class="error">
+            <?php foreach ($errors as $error): ?>
+                <p><?= htmlspecialchars($error) ?></p>
+            <?php endforeach; ?>
+        </div>
     <?php endif; ?>
     <form action="profile.php" method="post">
         <label for="nom">Nom :</label>
-        <input type="text" id="nom" name="nom" value="<?= htmlspecialchars($nom) ?>" placeholder="Nom">
+        <input type="text" id="nom" name="nom" value="<?= htmlspecialchars($user['nom']) ?>" placeholder="Nom">
 
         <label for="prenom">Prénom :</label>
-        <input type="text" id="prenom" name="prenom" value="<?= htmlspecialchars($prenom) ?>" placeholder="Prénom">
+        <input type="text" id="prenom" name="prenom" value="<?= htmlspecialchars($user['prenom']) ?>" placeholder="Prénom">
 
         <label for="sexe">Sexe :</label>
         <select id="sexe" name="sexe">
             <option value="">Choisissez</option>
-            <option value="Homme" <?= $sexe === 'Homme' ? 'selected' : '' ?>>Homme</option>
-            <option value="Femme" <?= $sexe === 'Femme' ? 'selected' : '' ?>>Femme</option>
+            <option value="h" <?= $user['sexe'] === 'h' ? 'selected' : '' ?>>Homme</option>
+            <option value="f" <?= $user['sexe'] === 'f' ? 'selected' : '' ?>>Femme</option>
         </select>
 
-        <label for="date_naissance">Date de naissance :</label>
-        <input type="date" id="date_naissance" name="date_naissance" value="<?= htmlspecialchars($date_naissance) ?>">
+        <label for="naissance">Date de naissance :</label>
+        <input type="date" id="naissance" name="naissance" value="<?= htmlspecialchars($user['naissance']) ?>">
 
         <button type="submit">Mettre à jour</button>
     </form>

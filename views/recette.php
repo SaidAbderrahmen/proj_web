@@ -1,5 +1,7 @@
 <?php
-include 'Donnees.inc.php';
+session_start();
+
+include '../Donnees.inc.php';
 
 // Définition de la fonction getAllRecettes() dans ce fichier
 function getAllRecettes() {

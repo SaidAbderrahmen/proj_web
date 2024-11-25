@@ -1,5 +1,7 @@
 <?php
 
+session_start();
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Vérification des champs
     $errors = [];
@@ -7,39 +9,70 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Vérification du login
     if (empty($_POST['login']) || !preg_match("/^[a-zA-Z0-9]+$/", $_POST['login'])) {
         $errors['login'] = "Le login est obligatoire et doit être composé de lettres et de chiffres uniquement.";
+    } else {
+        $login = $_POST['login'];
     }
 
     // Vérification du mot de passe
     if (empty($_POST['password'])) {
         $errors['password'] = "Le mot de passe est obligatoire.";
     } else {
-        $password = password_hash($_POST['password'], PASSWORD_DEFAULT);  // Hashage du mot de passe
+        $password = password_hash($_POST['password'], PASSWORD_DEFAULT);  
     }
 
     // Vérification du nom
-    if (!empty($_POST['nom']) && !preg_match("/^[a-zA-ZàéèôùÀÉÈÔÙ' -]+$/", $_POST['nom'])) {
+    if (!empty($_POST['nom']) && !preg_match("/^[a-zA-ZÀ-ÿ' -]+$/u", $_POST['nom'])) {
         $errors['nom'] = "Le nom est invalide (lettres, espaces, apostrophes, tirets uniquement).";
+    } else {
+        $nom = $_POST['nom'];
     }
 
     // Vérification du prénom
-    if (!empty($_POST['prenom']) && !preg_match("/^[a-zA-ZàéèôùÀÉÈÔÙ' -]+$/", $_POST['prenom'])) {
+    if (!empty($_POST['prenom']) && !preg_match("/^[a-zA-ZÀ-ÿ' -]+$/u", $_POST['prenom'])) {
         $errors['prenom'] = "Le prénom est invalide (lettres, espaces, apostrophes, tirets uniquement).";
+    } else {
+        $prenom = $_POST['prenom'];
     }
+
+    // Vérification du sexe
+    $sexe = isset($_POST['sexe']) ? $_POST['sexe'] : '';
 
     // Vérification de la date de naissance
     if (!empty($_POST['naissance'])) {
-        $date_naissance = new DateTime($_POST['naissance']);
+        $date_naissance = $_POST['naissance'];
+        $date_naissance_dt = new DateTime($date_naissance);
         $today = new DateTime();
-        $age = $today->diff($date_naissance)->y;
+        $age = $today->diff($date_naissance_dt)->y;
         if ($age < 18) {
-            $errors['naissance'] = "L'utilisateur doit avoir au moins 18 ans.";
+            $errors['naissance'] = "Vous devez avoir au moins 18 ans.";
         }
+    } else {
+        $date_naissance = '';
     }
 
-    // Si pas d'erreur, traitement de l'inscription
+    // Vérification de l'unicité du login
+    $usersFile = 'users.json';
+    $users = file_exists($usersFile) ? json_decode(file_get_contents($usersFile), true) : [];
+    if (isset($users[$login])) {
+        $errors['login'] = "Ce login est déjà utilisé.";
+    }
+
+    // Si pas d'erreurs, enregistrement de l'utilisateur
     if (empty($errors)) {
-        header('Location: accueil.php?inscription=success'); 
-        exit(); 
+        // Enregistrement des données
+        $users[$login] = [
+            'login' => $login,
+            'password' => $password,
+            'nom' => $nom,
+            'prenom' => $prenom,
+            'sexe' => $sexe,
+            'naissance' => $date_naissance,
+            'favorites' => []
+        ];
+        file_put_contents($usersFile, json_encode($users));
+        // Redirection vers la page de connexion
+        header('Location: connexion.php?inscription=success');
+        exit();
     }
 }
 ?>
@@ -48,7 +81,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inscription</title>
     <style>
         /* Style général de la page */
@@ -168,14 +200,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         <!-- Nom -->
         <label for="nom">Nom :</label>
-        <input type="text" id="nom" name="nom" pattern="^[a-zA-ZàéèôùÀÉÈÔÙ' -]+$" title="Le nom doit être composé de lettres, apostrophes, tirets et espaces" value="<?= isset($_POST['nom']) ? htmlspecialchars($_POST['nom']) : '' ?>" />
+        <input type="text" id="nom" name="nom" value="<?= isset($_POST['nom']) ? htmlspecialchars($_POST['nom']) : '' ?>" />
         <?php if (isset($errors['nom'])): ?>
             <div class="error"><?= $errors['nom'] ?></div>
         <?php endif; ?>
 
         <!-- Prénom -->
         <label for="prenom">Prénom :</label>
-        <input type="text" id="prenom" name="prenom" pattern="^[a-zA-ZàéèôùÀÉÈÔÙ' -]+$" title="Le prénom doit être composé de lettres, apostrophes, tirets et espaces" value="<?= isset($_POST['prenom']) ? htmlspecialchars($_POST['prenom']) : '' ?>" />
+        <input type="text" id="prenom" name="prenom" value="<?= isset($_POST['prenom']) ? htmlspecialchars($_POST['prenom']) : '' ?>" />
         <?php if (isset($errors['prenom'])): ?>
             <div class="error"><?= $errors['prenom'] ?></div>
         <?php endif; ?>
@@ -197,7 +229,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <!-- Date de naissance -->
         <div class="date-group">
             <label for="naissance">Date de naissance :</label>
-            <input type="date" id="naissance" name="naissance" value="<?= isset($_POST['naissance']) ? htmlspecialchars($_POST['naissance']) : '' ?>" required />
+            <input type="date" id="naissance" name="naissance" value="<?= isset($_POST['naissance']) ? htmlspecialchars($_POST['naissance']) : '' ?>" />
         </div>
         <?php if (isset($errors['naissance'])): ?>
             <div class="error"><?= $errors['naissance'] ?></div>

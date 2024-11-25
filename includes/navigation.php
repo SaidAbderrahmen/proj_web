@@ -1,36 +1,39 @@
 <?php
+
 include 'Donnees.inc.php';
 
-//obtenir les sous-cat d'un aliment
+// Obtenir les sous-catégories d'un aliment
 function getSousCategories($aliment) {
     global $Hierarchie;
-    if ($aliment && isset($Hierarchie[$aliment]['sous-categorie'])) { //verif si laliment possede une sous-cat
+    if ($aliment && isset($Hierarchie[$aliment]['sous-categorie'])) {
         return $Hierarchie[$aliment]['sous-categorie'];
     } else {
-        return [];  // Retourne un tableau vide si aucune sous-cat
+        return [];  // Retourne un tableau vide si aucune sous-catégorie
     }
 }
 
-// Vérifie si l'aliment est passé en paramètre GET
-if (isset($_GET['aliment'])) {
-    $aliment = $_GET['aliment']; // Récupère la valeur du paramètre 'aliment'
-    $recettes = getRecettesParAliment($aliment); // Appelle la fonction pour récupérer les recettes
-} else {
-    $recettes = []; // Si pas d'aliment sélectionné, pas de recettes à afficher
+// Obtenir tous les descendants d'un aliment (y compris l'aliment lui-même)
+function getAllDescendants($aliment) {
+    global $Hierarchie;
+    $descendants = [$aliment];
+    if (isset($Hierarchie[$aliment]['sous-categorie'])) {
+        foreach ($Hierarchie[$aliment]['sous-categorie'] as $sousCategorie) {
+            $descendants = array_merge($descendants, getAllDescendants($sousCategorie));
+        }
+    }
+    return $descendants;
 }
 
-//recup les recettes associees a chaque aliment
+// Récupérer les recettes associées à un aliment (en tenant compte des sous-catégories)
 function getRecettesParAliment($aliment) {
     global $Recettes;
     $recettes_par_aliment = [];
+    $ingredients = getAllDescendants($aliment);
     foreach ($Recettes as $id => $recette) {
-        // verifie si index existe et est bien un tableau
-        if (isset($recette['index']) && is_array($recette['index']) && in_array($aliment, $recette['index'])) {
-            $index_lower = array_map('strtolower', $recette['index']);
+        if (isset($recette['index']) && array_intersect($ingredients, $recette['index'])) {
             $recettes_par_aliment[$id] = $recette;
         }
     }
     return $recettes_par_aliment;
 }
 ?>
-
